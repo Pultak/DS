@@ -2,17 +2,16 @@ import json
 
 
 class NodeInfo:
-    def __init__(self, name="Unknown", node_type="Unknown", address="Unknown",
-                 port="69", json_data=None):
+    def __init__(self, node_type="init", address="init", json_data=None):
 
         if json_data is not None:
             self.__dict__ = json_data
             return
-        self.name = name
         self.node_type = node_type
-        self.port = port
         self.address = address
-        self.red_color = True
+        self.color = "none"
+        self.time = 0
+        self.leader_start_time = 0
 
     def to_string(self):
         # convert to JSON format

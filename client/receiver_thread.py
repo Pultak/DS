@@ -9,7 +9,7 @@ from client import node_info
 from client.node_info import NodeInfo
 
 
-class NodeInfoReceiver(threading.Thread):
+class NodeInfoReceiverThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
@@ -46,9 +46,13 @@ class NodeInfoReceiver(threading.Thread):
 
             logging.info("(%s) is of type %s" % (addr, parsed_info.node_type))
 
+    def add_new_node(self, address, node):
+        # acquire the lock
+        with self.lock:
+            self.addressDict[address] = node
+
     # remove some items from the shared dictionary
     def remove_nonactive_node(self, key):
-        counter = 0
         # acquire the lock
         with self.lock:
             if key in self.addressDict.keys():
@@ -56,5 +60,5 @@ class NodeInfoReceiver(threading.Thread):
 
     def get_active_nodes(self):
         with self.lock:
-            return self.addressDict
+            return dict(self.addressDict)
 
