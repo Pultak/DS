@@ -5,8 +5,8 @@ import logging
 from threading import Lock
 import socket
 
-from client import node_info
-from client.node_info import NodeInfo
+import node_info
+from node_info import NodeInfo
 
 
 class NodeInfoReceiverThread(threading.Thread):
@@ -28,23 +28,31 @@ class NodeInfoReceiverThread(threading.Thread):
         client.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         client.bind(("", 37020))
+        # self_address =
 
         while True:
-            data, addr = client.recvfrom(1024)
-            logging.info("received message (%s): %s" % (addr, data))
+            try:
+                data, addr = client.recvfrom(1024)
 
-            if data[0] is '{':
-                self.parse_broadcast_input(data, addr)
+                decoded_data = data.decode("ascii")
+                if decoded_data[0] == '{':
+                    self.parse_broadcast_input(data, addr)
+            except Exception as e:
+                logging.error("Exception found inside receiver thread! %s" % e)
 
-    @staticmethod
-    def parse_broadcast_input(data, addr):
+    def parse_broadcast_input(self, data, addr):
         parsed_json = node_info.json_from_string(data)
         parsed_info = None
         if parsed_json is not None:
             parsed_info = NodeInfo(json_data=parsed_json)
-        if parsed_info is not None:
+        if parsed_info is not None and parsed_info:
+            logging.debug("(%s-%s) is of type %s" % (parsed_info.address, parsed_info.name, parsed_info.node_type))
 
-            logging.info("(%s) is of type %s" % (addr, parsed_info.node_type))
+            if self.nodeInfo.address != parsed_info.address:
+                if parsed_info.address not in self.addressDict.keys():
+                    logging.info("New node connected to our network! Address %s" % parsed_info.address)
+
+                self.addressDict[parsed_info.address] = parsed_info
 
     def add_new_node(self, address, node):
         # acquire the lock
