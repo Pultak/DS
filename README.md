@@ -20,6 +20,26 @@ začal (např. “init”, “master”, “green”, “red”)
 - Využití nástrojů Vagrant a Docker pro vytvoření a spuštění infrastruktury.
 - Sestavení aplikace musí být možné v prostředí Unix/Linux
 
+# Popis implementace
+
+Během celého chodu aplikace je periodicky zasílán broadcast ping, který značí, že je node v síti aktivní (ve třídě master_selector.py konstanta PING_PERIOD). V jiném prostředí by takovýto způsob nemusel stačit (zejména pro systém přes několik privátních sítí), ale pro naše účely se mi tento způsob jevil jako dostatečný. Každý node si tedy díky těmto pingum udržuje list se všemi aktivními nody (dochází ke kontrole podle posledního přijatého pingu). Pokud se uzel neozve do stanoveného času, dojde k jeho vyřazení (ve třídě master_selector.py konstanta MAX_OUTAGE_TIME). 
+
+
+1. Volba mastera
+
+Každý uzel vypisuje do logu (standardní výstup) zřetelně každou změnu svého stavu pod logovací třídou INFO. V případě, že chcete podrobnější popis je potřeba v souboru main.py na 14. řádce přepsat level na DEBUG. 
+
+Pokud v siti neni zadny master (nepřišel žádný ping od žádného po nejakou dobu) zvolíme se jako master. V případě, že se poté objeví v síti dva uzly, ktere se nazyvaji masterem, tak preda veleni tomu ktery ma nizsi časový klíč. O změně svého vůdce se jednotlivé uzly dozví pomocí pingu (obsahuje totiž o něm i ty nejdůležitější informace). 
+
+V případě, že dojde k výpadku master uzlu dojde po čase (MAX_OUTAGE_TIME) k novému volení uzlu, tak jak je popsáno dříve v této sekci.
+
+
+2. Obarvení uzlů
+
+Master uzel je vždy obarvený jako „zelený“, počet „zelených“ uzlů se zaokrouhluje směrem nahoru. Po stanoveni mastera se jednotlivé uzly dotazují přes HTTP API na svojí přiřazenou barvu. Master si interně vede mapu všech již přiřazených barev a podle poměru zelených a červených stanoví tázajícímu novou barvu. 
+
+V případě, že dojde k výpadku obarveného uzlu, podívá se master na aktuální stav poměru barev a podle situace zvolí nejbližší červený/zelený uzel a přebarví ho na druhou barvu.
+
 
 ## Možné nedostatky aplikace
 
