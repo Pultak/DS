@@ -76,7 +76,7 @@ class MasterSelectorThread(threading.Thread):
                 return color
 
     def find_address_by_color(self, color):
-        for clrAddr, clrColor in self.color_map:
+        for clrAddr, clrColor in self.color_map.items():
             if clrColor == color:
                 return clrAddr
         return None
@@ -118,14 +118,17 @@ class MasterSelectorThread(threading.Thread):
             if map_len == 0:
                 return
             green_count = sum(1 for v in self.color_map.values() if v == COLOR_GREEN)
-            ratio = (green_count + 1.0) / len(self.color_map)
-            if ratio < 1 / 3:
+            ratio = (float(green_count) + 1.0) / float(map_len + 1)
+            logging.info("GREEN/RED ratio is currently %s" % ratio)
+            if ratio < 0.333333:
                 color = COLOR_GREEN
-                address = self.find_address_by_color(color)
-            elif ratio >= 2 / 3:
+                address = self.find_address_by_color(COLOR_RED)
+            elif ratio >= 0.6:
                 color = COLOR_RED
-                address = self.find_address_by_color(color)
+                address = self.find_address_by_color(COLOR_GREEN)
             else:
+                return
+            if address is None:
                 return
             logging.info("Color integrity was compromised by the outage. Assigning color %s to node %s"
                          % (color, address))
@@ -141,6 +144,7 @@ class MasterSelectorThread(threading.Thread):
             logging.info("My slave node responded: %s" % x)
             if x == OK_RESPONSE:
                 # he is no longer leader => ok
+                self.color_map[address] = color
                 return
             else:
                 logging.error("Unknown response from enemy leader (%s)!" % address)

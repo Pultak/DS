@@ -11,7 +11,7 @@ import receiver_thread
 import master_selector
 
 logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                    level='DEBUG')
+                    level='INFO')
 app = Flask(__name__)
 # hack to let the vagrant setup eth1 interface for http server
 time.sleep(2)
