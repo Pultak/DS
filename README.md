@@ -87,8 +87,7 @@ Výpis pak může vypadat následovně:
 
 
 
-![](img/cat.gif)
-
+<img src="img/cat.gif" alt="drawing" width="50"/>
 
 
 
