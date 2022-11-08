@@ -68,5 +68,9 @@ class NodeInfoReceiverThread(threading.Thread):
 
     def get_active_nodes(self):
         with self.lock:
-            return dict(self.addressDict)
+            if len(self.addressDict) > 0:
+
+                return dict(self.addressDict)
+            else:
+                return None
 

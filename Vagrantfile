@@ -4,7 +4,7 @@ VAGRANTFILE_API_VERSION = "2"
 ENV['VAGRANT_DEFAULT_PROVIDER'] = 'docker'
 
 # disable parallellism so that the containers come up in order
-#ENV['VAGRANT_NO_PARALLEL'] = "1"
+ENV['VAGRANT_NO_PARALLEL'] = "1"
 ENV['FORWARD_DOCKER_PORTS'] = "1"
 # minor hack enabling to run the image and configuration trigger just once
 ENV['VAGRANT_EXPERIMENTAL']="typed_triggers"

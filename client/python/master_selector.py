@@ -39,12 +39,18 @@ class MasterSelectorThread(threading.Thread):
             self.check_active_nodes()
             if self.actual_node.promotedAsLeader:
                 # logging.debug("Im boss!")
-                if len(self.color_map) == len(self.receiver.get_active_nodes()):
+
+                active_nodes = self.receiver.get_active_nodes()
+                if active_nodes is None:
+                    return
+
+                elif len(self.color_map) == len(active_nodes):
                     with self.actual_node.colorLock:
                         colors = json.dumps(self.color_map, indent=4)
                         logging.info(
                             "Everyone is colored! I as leader have green color and node color assignment looks like this: \n %s" % colors)
-
+                else:
+                    logging.info("Waiting for everyone to get colored")
                 time.sleep(CLIENT_SLEEP_TIME)
             elif self.actual_node.last_leader is None:
                 self.look_for_leader()
@@ -84,7 +90,11 @@ class MasterSelectorThread(threading.Thread):
     def check_active_nodes(self):
 
         actual_time = time.time()
-        for address, node in self.receiver.get_active_nodes().items():
+        active_nodes = self.receiver.get_active_nodes()
+        if active_nodes is None:
+            return
+
+        for address, node in active_nodes.items():
             if actual_time - node.time > MAX_OUTAGE_TIME:
                 logging.info("Removing non active node %s !" % address)
                 self.receiver.remove_nonactive_node(address)
@@ -120,10 +130,10 @@ class MasterSelectorThread(threading.Thread):
             green_count = sum(1 for v in self.color_map.values() if v == COLOR_GREEN)
             ratio = (float(green_count) + 1.0) / float(map_len + 1)
             logging.info("GREEN/RED ratio is currently %s" % ratio)
-            if ratio < 0.333333:
+            if ratio < 1/3:
                 color = COLOR_GREEN
                 address = self.find_address_by_color(COLOR_RED)
-            elif ratio >= 0.6:
+            elif ratio >= 2/3:
                 color = COLOR_RED
                 address = self.find_address_by_color(COLOR_GREEN)
             else:
@@ -185,15 +195,19 @@ class MasterSelectorThread(threading.Thread):
 
         else:
             # look for possible leaders
-            for address, node in self.receiver.get_active_nodes().items():
+            active_nodes = self.receiver.get_active_nodes()
+            if active_nodes is None:
+                return
+
+            for address, node in active_nodes.items():
                 if node.node_type == LEADER_TYPE:
                     if self.actual_node.last_leader is None \
                             or self.actual_node.last_leader['time'] > node.leader_start_time:
                         logging.info("Found suitable leader on %s with time key %s"
                                      % (node.address, node.leader_start_time))
                         self.actual_node.leaderSearchRetryCount = 0
-                        self.actual_node.last_leader = {'address': self.actual_node.address,
-                                                        "time": self.actual_node.leader_start_time}
+                        self.actual_node.last_leader = {'address': node.address,
+                                                        "time": node.leader_start_time}
             self.actual_node.leaderSearchRetryCount += 1
 
     def ask_for_color(self):
@@ -209,7 +223,10 @@ class MasterSelectorThread(threading.Thread):
             if x == NOT_LEADER_RESPONSE:
                 # node we contacted is no longer leader
                 self.actual_node.last_leader = None
-                logging.info("Leader is no longer valid and cant assign me color")
+                self.actual_node.node_type = INIT_TYPE
+                self.actual_node.color = COLOR_NONE
+                self.actual_node.leaderSearchRetryCount = 0
+                logging.info("Leader is no longer valid and cant assign me color. Changing to INIT state")
             elif x == COLOR_GREEN or x == COLOR_RED:
                 logging.info("Leader assigned me color %s" % x)
                 self.actual_node.node_type = COLORED_SLAVE_TYPE
