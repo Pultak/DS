@@ -206,7 +206,7 @@ class MasterSelectorThread(threading.Thread):
             logging.debug("Sending HTTP POST to %s " % res_address)
             x = requests.post(res_address, json=address_json).text
 
-            if x is NOT_LEADER_RESPONSE:
+            if x == NOT_LEADER_RESPONSE:
                 # node we contacted is no longer leader
                 self.actual_node.last_leader = None
                 logging.info("Leader is no longer valid and cant assign me color")
